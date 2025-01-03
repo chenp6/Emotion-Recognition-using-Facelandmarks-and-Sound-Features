@@ -153,7 +153,7 @@ async function createFaceLandmarker() {
             startRecord(streamObj);
             video.play();
             video.addEventListener("loadeddata",predictWebcam);
-           video.style.visibility = 'hidden'
+        //    video.style.visibility = 'hidden'
             video.muted = true;
         });
     }
@@ -172,20 +172,20 @@ async function createFaceLandmarker() {
         canvasElement.style.height = videoWidth * radio + "px";
         canvasElement.width = video.videoWidth;
         canvasElement.height = video.videoHeight;
-        const canvasElement2 = document.getElementById("output_canvas2");
+        // const canvasElement2 = document.getElementById("output_canvas2");
         // canvasElement2.style.width = videoWidth + "px";
         // canvasElement2.style.height = videoWidth * radio + "px";
         // canvasElement2.width = video.videoWidth;
         // canvasElement2.height = video.videoHeight;
-        const canvasCtx2 = canvasElement2.getContext("2d");
-        canvasCtx.canvas.hidden = true;
-        canvasCtx2.canvas.hidden = true;
-        const newImg = document.getElementById("newImg");
-        newImg.style.width = videoWidth + "px";
-        newImg.style.height = videoWidth * radio + "px";
-        newImg.width = videoWidth;
-        newImg.height = videoWidth * radio ;
-        newImg.style.objectFit = 'fill';
+        // const canvasCtx2 = canvasElement2.getContext("2d");
+        // canvasCtx.canvas.hidden = true;
+        // canvasCtx2.canvas.hidden = true;
+        // const newImg = document.getElementById("newImg");
+        // newImg.style.width = videoWidth + "px";
+        // newImg.style.height = videoWidth * radio + "px";
+        // newImg.width = videoWidth;
+        // newImg.height = videoWidth * radio ;
+        // newImg.style.objectFit = 'fill';
 
         // Now let's start detecting the stream.
         if (runningMode === "IMAGE") {
@@ -199,36 +199,36 @@ async function createFaceLandmarker() {
         }
         if (results.faceLandmarks) {
 
-            setTimeout(()=>{
-                if(results.faceLandmarks[0]){
-                    if(results.faceLandmarks[0].length>=0){
-                        const xValues = results.faceLandmarks[0].map(landmark => landmark.x);
-                        const maxX = Math.max(...xValues)*videoWidth;
-                        const minX = Math.min(...xValues)* videoWidth;
+        //     setTimeout(()=>{
+        //         if(results.faceLandmarks[0]){
+        //             if(results.faceLandmarks[0].length>=0){
+        //                 const xValues = results.faceLandmarks[0].map(landmark => landmark.x);
+        //                 const maxX = Math.max(...xValues)*videoWidth;
+        //                 const minX = Math.min(...xValues)* videoWidth;
             
-                        const YValues = results.faceLandmarks[0].map(landmark => landmark.y);
-                        const maxY = Math.max(...YValues)*videoWidth* radio;
-                        const minY = Math.min(...YValues)*videoWidth* radio;
+        //                 const YValues = results.faceLandmarks[0].map(landmark => landmark.y);
+        //                 const maxY = Math.max(...YValues)*videoWidth* radio;
+        //                 const minY = Math.min(...YValues)*videoWidth* radio;
 
-                        const imgLenX = maxX-minX;
-                        const imgLenY = maxY-minY;
-                        canvasElement2.style.width = imgLenX+ "px";
-                        canvasElement2.style.height = imgLenY+ "px";
-                        canvasElement2.width = imgLenX;
-                        canvasElement2.height = imgLenY;
-                        // canvasCtx2.drawImage(video, minX, minY, maxX, maxY,minX, minY, maxX, maxY);
-                        canvasCtx2.drawImage(video, minX, minY, maxX, maxY,0, 0,imgLenX, imgLenY);
+        //                 const imgLenX = maxX-minX;
+        //                 const imgLenY = maxY-minY;
+        //                 canvasElement2.style.width = imgLenX+ "px";
+        //                 canvasElement2.style.height = imgLenY+ "px";
+        //                 canvasElement2.width = imgLenX;
+        //                 canvasElement2.height = imgLenY;
+        //                 // canvasCtx2.drawImage(video, minX, minY, maxX, maxY,minX, minY, maxX, maxY);
+        //                 canvasCtx2.drawImage(video, minX, minY, maxX, maxY,0, 0,imgLenX, imgLenY);
 
-                        let url = canvasElement2.toDataURL();
-                        newImg.src =url;
+        //                 let url = canvasElement2.toDataURL();
+        //                 newImg.src =url;
                         
-                    }
-                }
+        //             }
+        //         }
 
 
 
-               // canvasCtx2.drawImage(video, 0, 0,v.videoWidth,v.videoHeight,0, 0,v.videoWidth,v.videoHeight); 
-            },1000)
+        //        // canvasCtx2.drawImage(video, 0, 0,v.videoWidth,v.videoHeight,0, 0,v.videoWidth,v.videoHeight); 
+        //     },1000)
 
             for (const landmarks of results.faceLandmarks) {
                 drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#C0C0C070", lineWidth: 1 });
