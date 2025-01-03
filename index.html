@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - MediaPipe Face Landmarker Task for web</title>
+  <!-- <link rel="stylesheet" href="/style.css"> -->
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<!-- Copyright 2023 The MediaPipe Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Face Landmarker</title>
+
+  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+  <script src="./meyda/dist/web/meyda.js"></script>
+  <script src="./script_realtime.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+
+</head>
+<body>
+
+  <section id="demos" class="invisible">
+    <div id="predictResult">
+      Predict:
+    </div>
+
+    <div id="liveView" class="videoView">
+      <button id="webcamButton" style="display: none;" class="mdc-button mdc-button--raised">
+        <span class="mdc-button__ripple"></span>
+        <span class="mdc-button__label">ENABLE WEBCAM</span>
+      </button>
+
+      <div style="position: relative;">
+        <div>
+          <video  id="webcam" style="position: absolute; " ></video>
+          <canvas class="output_canvas" id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
+        </div>
+        <img id="newImg">
+        <div style="position: relative;">
+          <canvas class="output_canvas2" id="output_canvas2" style="position: absolute; left: 0px; top: 0px;"></canvas>
+        </div> 
+      </div>
+
+    </div>
+    <div class="blend-shapes">
+      <ul class="blend-shapes-list" id="video-blend-shapes"></ul>
+    </div>
+  </section>
+  <div id="resultImg"></div>
+
+</body>
+<style>
+  canvas,img{
+    -moz-transform:scaleX(-1);
+    -webkit-transform:scaleX(-1);
+    -o-transform:scaleX(-1);
+    transform:scaleX(-1);
+  }
+  canvas{
+    z-index: 999;
+  }
+</style>
+<!-- partial -->
+  <script type="module" src="./script.js"></script>
+  <script>
+    // Load our model.
+    // const sess = new onnx.InferenceSession();
+    // const loadingModelPromise = sess.loadModel("./onnx_model.onnx");
+
+    let session = null;
+
+    async function loadModel() {
+        if (!session) {
+            session = await ort.InferenceSession.create('./onnx_model.onnx');
+        }
+    }
+
+    async function runModel(m_mfcc_features, m_face_features) {
+            if(session==null) return -1
+            // console.log(m_mfcc_features.length) // 312
+            // console.log(m_mfcc_features[0].length) //40
+            let sequenceLengthMfcc = 312;
+            let inputDimMfcc = 40;
+            let sequenceLengthFace = 150;
+            let inputDimFace = 52;
+
+
+
+            // Create flat array for MFCC features
+            const flatMfccFeatures = [];
+            for (let i = 0; i < m_mfcc_features.length; i++) {
+              flatMfccFeatures.push(...m_mfcc_features[i]);
+            }
+
+            // Ensure the length is correct, padding with zeros if necessary
+            while (flatMfccFeatures.length < sequenceLengthMfcc * inputDimMfcc) {
+                flatMfccFeatures.push(0);
+            }
+            flatMfccFeatures.length = sequenceLengthMfcc * inputDimMfcc;
+
+
+            // flatMfccFeatures.length = 312 * 40;
+
+            // Create flat array for MFCC features
+            const flatFaceFeatures = [];
+            for (let i = 0; i < m_face_features.length; i++) {
+              flatFaceFeatures.push(...m_face_features[i]);
+            }
+
+            // Ensure the length is correct, padding with zeros if necessary
+            while (flatFaceFeatures.length < sequenceLengthFace * inputDimFace) {
+              flatFaceFeatures.push(0);
+            }
+            // flatFaceFeatures.length = sequenceLengthFace * inputDimFace;
+
+
+            // flatMfccFeatures.length = 150 * 52;
+
+            const mfccTensor = new ort.Tensor('float32', new Float32Array(flatMfccFeatures), [1, sequenceLengthMfcc, inputDimMfcc]);
+            const faceTensor = new ort.Tensor('float32', new Float32Array(flatFaceFeatures),[1, sequenceLengthFace, inputDimFace]);
+            const outputMap = await session.run({ input_mfcc: mfccTensor, input_face: faceTensor });
+            const outputTensor = outputMap[session.outputNames[0]];      
+            const predictions = outputTensor.data;
+            console.log(...predictions)
+            const maxIndex = predictions.indexOf(Math.max(...predictions));
+            return maxIndex;
+    }
+
+
+    document.addEventListener('DOMContentLoaded', async () => {
+            await loadModel()
+    });
+
+
+
+
+
+    // Load the ONNX model
+    // const session = await ort.InferenceSession.create('onnx_model.onnx');
+    face_features = []
+    mfcc_features=[]
+    setInterval(async()=>{
+      if(mfcc_features.length>300 && face_features.length>100 ){
+        const mfccLength = 312;
+        const faceLength = 150;
+        
+        const trimmedMfcc = trimFeatures(mfcc_features, mfccLength);
+        const trimmedFace = trimFeatures(face_features, faceLength);
+
+        runModel(trimmedMfcc, trimmedFace).then(prediction => {
+            displayResult(prediction);
+            clearData();
+        });          
+        
+        
+        // predictEmotion()
+    }
+},500)
+
+function displayResult(prediction){
+  const emotionLabel = ['Negative','Neutral','Positive'];
+  console.log('Prediction:', prediction);
+  if(prediction==2){
+      prediction = 'Positive';
+  }else if(prediction==1){
+     prediction = 'Neutral';
+  }else{
+      prediction = 'Negative';
+  }
+
+  predictResult.innerText = "Predict:"+ prediction;
+}      
+
+function clearData(){
+  mfcc_features = []
+  face_features = []
+}
+
+
+function trimFeatures(features, length) {
+ if (features.length > length) {
+        return features.slice(0, length);
+  }
+  return features;
+}
+
+// backend predict
+// async function predictEmotion() {
+//     const ipString = "192.168.0.100"; //<需改成自己的內網ip>
+//     try {
+//         const response = await fetch(`http://${ipString}:5000/predict`, {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'Accept': 'application/json',
+//             },
+//             body: JSON.stringify({
+//                 mfcc_features: mfcc_features,
+//                 face_features: face_features,
+//             }),
+//         });
+
+//         if (!response.ok) {
+//             throw new Error(`Error! status: ${response.status}`);
+//         }else{
+//           mfcc_features = []
+//           face_features = []
+//         }
+
+//         const result = await response.json();
+//         predictResult.innerText = "Predict:"+ result.prediction
+
+//         return result;
+//     } catch (error) {
+//         console.error('Error:', error);
+//         document.getElementById('result').textContent = 'Prediction failed';
+//     }
+// }
+
+  </script>
+</body>
+</html>
